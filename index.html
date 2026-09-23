@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#020711">
+<title>SHADOW AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800&display=swap');
+:root{
+ --accent:#19b5ff;--rgb:25,181,255;--bg:#02060d;--bg2:#06101c;
+ --text:#eaf8ff;--muted:#71899b;--line:rgba(80,180,255,.15);
+ --panel:rgba(5,14,25,.96);--panel2:#081624;--green:#00e69a;
+ --cyan:#00e1d2;--danger:#ff5f70;--sidebar:74px;--glow:rgba(25,181,255,.42);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:1px solid var(--accent);box-shadow:0 0 0 3px rgba(var(--rgb),.12)}
+.app{width:100%;height:100vh;position:relative;overflow:hidden;display:flex;background:
+ radial-gradient(circle at 58% 46%,rgba(var(--rgb),.12),transparent 31%),
+ radial-gradient(circle at 88% 80%,rgba(var(--rgb),.05),transparent 28%),
+ linear-gradient(135deg,var(--bg),var(--bg2))}
+.app:before{content:"";position:absolute;inset:0;pointer-events:none;background-image:
+ linear-gradient(rgba(var(--rgb),.032) 1px,transparent 1px),
+ linear-gradient(90deg,rgba(var(--rgb),.032) 1px,transparent 1px);
+ background-size:52px 52px;mask-image:radial-gradient(circle,#000,transparent 88%)}
+.app:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at center,transparent 45%,rgba(0,0,0,.38))}
+.scan-line{position:absolute;left:var(--sidebar);right:0;top:-2px;height:1px;z-index:5;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(var(--rgb),.5),transparent);animation:scanLine 14s linear infinite}
+@keyframes scanLine{to{top:110%}}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);flex:none;position:relative;z-index:100;height:100%;display:flex;flex-direction:column;padding:18px 9px;background:linear-gradient(180deg,rgba(3,9,17,.99),rgba(4,12,22,.96));border-right:1px solid var(--line);backdrop-filter:blur(25px);transition:width .25s ease;overflow:hidden}
+.sidebar:hover{width:238px}
+.logo{height:62px;padding:5px 11px 16px;border-bottom:1px solid var(--line);margin-bottom:13px;white-space:nowrap}
+.logo-main{color:var(--accent);font:800 20px Orbitron,sans-serif;letter-spacing:5px;text-shadow:0 0 18px rgba(var(--rgb),.25)}
+.logo-sub{display:block;margin-top:7px;color:var(--muted);font-size:8px;letter-spacing:2px;opacity:0;transition:.18s}
+.sidebar:hover .logo-sub{opacity:1}
+.nav{display:grid;gap:5px}
+.nav button{position:relative;height:46px;width:100%;border:0;border-radius:11px;padding:0 13px;display:flex;align-items:center;gap:13px;text-align:left;color:var(--muted);background:transparent;transition:.2s;white-space:nowrap}
+.nav button:hover{color:var(--text);background:rgba(var(--rgb),.055)}
+.nav button.active{color:var(--text);background:linear-gradient(90deg,rgba(var(--rgb),.15),rgba(var(--rgb),.025));box-shadow:inset 2px 0 var(--accent)}
+.nav-icon{width:20px;flex:none;color:var(--accent);text-align:center;font-size:17px}
+.nav-label{font-size:11px;font-weight:600;opacity:0;transform:translateX(-5px);transition:.18s}
+.sidebar:hover .nav-label{opacity:1;transform:none}
+.side-bottom{margin-top:auto;padding:14px 11px 3px;border-top:1px solid var(--line);white-space:nowrap}
+.online-row{display:flex;align-items:center;gap:8px;color:var(--green);font-size:8px;letter-spacing:1.5px}
+.online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 13px var(--green);animation:pulseDot 2s infinite}
+.session-time{margin-top:8px;color:var(--muted);font:8px Orbitron,sans-serif;letter-spacing:1px;opacity:0;transition:.18s}
+.sidebar:hover .session-time{opacity:1}
+@keyframes pulseDot{50%{transform:scale(.55);opacity:.5}}
+
+/* SHELL */
+.shell{min-width:0;flex:1;height:100%;position:relative;display:flex;flex-direction:column}
+.topbar{height:64px;flex:none;position:relative;z-index:90;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(2,7,15,.54);backdrop-filter:blur(20px)}
+.system-name{color:var(--muted);font-size:11px;letter-spacing:1px}.system-name strong{color:var(--text);font-weight:700}
+.status-separator{margin:0 8px;color:#405465}.system-status{color:var(--accent);font-size:9px;letter-spacing:1.5px}
+.top-right{display:flex;align-items:center;gap:10px}.clock{color:#9cb0bd;font:10px Orbitron,sans-serif;letter-spacing:1.5px}
+.top-button{width:36px;height:36px;border:1px solid var(--line);border-radius:9px;background:#071321;color:var(--muted);transition:.2s}
+.top-button:hover{color:var(--accent);border-color:var(--accent);box-shadow:0 0 18px rgba(var(--rgb),.12)}
+
+/* HOME */
+.stage{position:absolute;inset:64px 0 0;overflow:hidden;display:grid;place-items:center}
+.response{position:absolute;top:32px;left:50%;transform:translateX(-50%);width:min(760px,72%);z-index:20;text-align:center}
+.response-label{color:var(--accent);font:600 9px Orbitron,sans-serif;letter-spacing:4px;opacity:.8;margin-bottom:10px}
+.response-box{display:inline-block;max-width:100%;padding:12px 19px;border:1px solid var(--line);border-radius:14px;background:rgba(5,18,31,.62);box-shadow:0 18px 55px rgba(0,0,0,.28);backdrop-filter:blur(16px)}
+.response-text{font-size:13px;line-height:1.5;transition:.3s}
+.home-stats{position:absolute;left:28px;top:28px;display:grid;gap:8px;width:180px;z-index:25}
+.stat-mini{border:1px solid var(--line);background:rgba(5,17,29,.72);border-radius:12px;padding:11px 12px;backdrop-filter:blur(14px)}
+.stat-mini .k{font-size:7px;color:var(--muted);letter-spacing:1.5px}.stat-mini .v{margin-top:5px;font:700 15px Orbitron;color:var(--accent)}
+.home-feed{position:absolute;right:28px;top:28px;width:245px;z-index:25;border:1px solid var(--line);background:rgba(5,17,29,.72);border-radius:14px;padding:13px;backdrop-filter:blur(14px)}
+.feed-title{font:600 8px Orbitron;color:var(--accent);letter-spacing:2px;margin-bottom:9px}
+.feed-item{padding:8px 0;border-bottom:1px solid rgba(var(--rgb),.07);font-size:8px;color:var(--muted);line-height:1.45}.feed-item:last-child{border:0}
+.core-area{width:620px;height:620px;position:relative;display:grid;place-items:center}
+.hud{position:absolute;border-radius:50%;border:1px solid rgba(var(--rgb),.16);pointer-events:none}
+.hud-1{width:520px;height:520px;border-left-color:transparent;border-right-color:transparent;animation:spin 30s linear infinite}
+.hud-2{width:430px;height:430px;border-style:dashed;animation:spinReverse 20s linear infinite}.hud-3{width:335px;height:335px;border-style:dotted;opacity:.65;animation:spin 15s linear infinite}
+.hud:after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 14px var(--cyan);top:12%;left:20%}
+.hud-2:after{top:auto;left:auto;bottom:12%;right:19%}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes spinReverse{to{transform:rotate(-360deg)}}
+.core{width:225px;height:225px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 0 30px var(--glow));transition:.35s}
+.energy{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 35% 28%,#e9fdff 0 2%,#77e3ff 7%,var(--accent) 18%,#075c9d 48%,#001326 78%);box-shadow:0 0 38px var(--glow),0 0 100px rgba(var(--rgb),.2),inset -25px -25px 40px rgba(0,0,0,.55)}
+.inner{position:absolute;inset:20px;border:1px solid rgba(255,255,255,.65);border-left-color:transparent;border-right-color:transparent;border-radius:50%;box-shadow:inset 0 0 25px var(--glow);animation:spinReverse 6s linear infinite}
+.inner:before{content:"";position:absolute;inset:15px;border:1px solid var(--accent);border-radius:50%;box-shadow:0 0 20px rgba(var(--rgb),.35)}
+.inner:after{content:"";position:absolute;inset:42px;border:1px solid var(--cyan);border-radius:50%;box-shadow:0 0 22px var(--cyan);animation:corePulse 2.8s ease-in-out infinite}
+@keyframes corePulse{50%{transform:scale(1.14);opacity:.5}}
+.jarvis-mark{position:absolute;color:#fff;font:800 31px Orbitron;text-shadow:0 0 12px #fff,0 0 28px var(--accent)}
+.particle{position:absolute;width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);opacity:.65}.p1{animation:orbitOne 6s linear infinite}.p2{animation:orbitTwo 9s linear infinite}.p3{animation:orbitThree 12s linear infinite}
+@keyframes orbitOne{to{transform:rotate(360deg) translateX(128px) rotate(-360deg)}}@keyframes orbitTwo{to{transform:rotate(-360deg) translateX(150px) rotate(360deg)}}@keyframes orbitThree{to{transform:rotate(360deg) translateX(105px) rotate(-360deg)}}
+.core-status{position:absolute;bottom:38px;text-align:center}.state-name{color:var(--accent);font:600 12px Orbitron;letter-spacing:5px}.state-detail{margin-top:8px;color:var(--muted);font-size:10px}
+.state-listening .energy{animation:listeningCore 1.05s ease-in-out infinite}.state-thinking .energy{animation:thinkingCore 1.35s infinite}.state-reasoning .energy{animation:reasonCore 2.1s infinite}.state-speaking .energy{animation:speakingCore .42s infinite alternate}.state-processing .energy{animation:processingCore .9s infinite}.state-sleeping .energy{animation:sleepCore 3s infinite}
+@keyframes listeningCore{50%{transform:scale(1.1);filter:brightness(1.3)}}@keyframes thinkingCore{50%{transform:scale(1.08) rotate(180deg);filter:brightness(1.35)}}@keyframes reasonCore{50%{transform:scale(1.08);filter:brightness(1.55)}}@keyframes speakingCore{to{transform:scaleX(1.14) scaleY(.86);filter:brightness(1.5)}}@keyframes processingCore{50%{transform:scale(1.08);filter:hue-rotate(35deg) brightness(1.35)}}@keyframes sleepCore{50%{transform:scale(.88);filter:brightness(.55);opacity:.65}}
+.controls{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;z-index:40}
+.control-button{height:46px;padding:0 15px;border:1px solid var(--line);border-radius:11px;background:rgba(7,20,34,.88);color:var(--text);font-size:9px;transition:.2s}.control-button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+.voice-button{width:60px;height:60px;border:1px solid rgba(var(--rgb),.5);border-radius:50%;background:radial-gradient(circle,#126b96,#061b2c);color:var(--accent);font-size:21px;box-shadow:0 0 22px var(--glow),0 0 0 8px rgba(var(--rgb),.025);transition:.25s}.voice-button:hover{transform:scale(1.07)}.voice-button.active{background:var(--accent);color:#00131f;animation:micPulse 1s alternate infinite}
+@keyframes micPulse{to{box-shadow:0 0 0 18px rgba(var(--rgb),.04),0 0 65px var(--accent)}}
+
+/* WORKSPACE */
+.workspace{position:absolute;z-index:80;left:0;top:64px;bottom:0;width:min(920px,calc(100% - 30px));padding:26px 30px 40px;overflow:auto;background:linear-gradient(90deg,rgba(3,10,18,.99),rgba(5,15,27,.97));border-right:1px solid var(--line);transform:translateX(-103%);opacity:0;pointer-events:none;transition:.38s cubic-bezier(.2,.8,.2,1)}
+.workspace.open{transform:none;opacity:1;pointer-events:auto}
+.workspace::-webkit-scrollbar{width:5px}.workspace::-webkit-scrollbar-thumb{background:rgba(var(--rgb),.25);border-radius:20px}
+.workspace-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;position:sticky;top:0;z-index:4;padding-bottom:12px;background:linear-gradient(rgba(3,10,18,1),rgba(3,10,18,.82),transparent)}
+.workspace-title{color:var(--text);font:600 22px Orbitron;letter-spacing:1px}.workspace-subtitle{margin-top:7px;color:var(--muted);font-size:10px}.workspace-close{width:38px;height:38px;border:1px solid var(--line);border-radius:10px;background:rgba(var(--rgb),.06);color:var(--accent);font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{background:linear-gradient(145deg,rgba(9,23,40,.92),rgba(5,15,27,.92));border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:12px}.card-title{color:var(--accent);font:600 9px Orbitron;letter-spacing:2.3px;margin-bottom:11px}.card-description{color:var(--muted);font-size:9px;line-height:1.6}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:12px}.metric-card{padding:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.015)}.metric-label{color:var(--muted);font-size:7px;letter-spacing:1.4px}.metric-value{margin-top:7px;color:var(--accent);font:700 18px Orbitron}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tool-input,.tool-select,.setting-input,.setting-select,.tool-textarea{height:36px;padding:0 10px;border:1px solid var(--line);border-radius:9px;outline:0;background:#061321;color:var(--text);font-size:9px;min-width:0}.tool-input{flex:1;min-width:160px}.tool-select{min-width:120px}.tool-textarea{width:100%;height:90px;padding:10px;resize:vertical}
+.item{padding:11px 0;border-bottom:1px solid rgba(var(--rgb),.08);color:var(--muted);font-size:10px}.item:last-child{border:0}.item b{display:block;color:var(--text);margin-bottom:4px}
+.action-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.action-button{height:34px;padding:0 12px;border:1px solid rgba(var(--rgb),.18);border-radius:9px;background:rgba(var(--rgb),.1);color:var(--accent);font-size:8px}.action-button.danger{color:var(--danger);border-color:rgba(255,60,60,.18);background:rgba(255,60,60,.07)}
+.chat{padding:12px 14px;border:1px solid var(--line);border-radius:11px;margin:7px 0;font-size:10px;line-height:1.5}.chat.you{border-left:3px solid var(--accent);background:rgba(var(--rgb),.045)}.chat.ai{border-left:3px solid var(--cyan);background:rgba(255,255,255,.015)}.chat-name{color:var(--accent);font-size:8px;letter-spacing:1.4px;margin-bottom:5px}.chat-time{display:block;margin-top:6px;color:#506676;font-size:7px}
+.timeline{position:relative;padding-left:28px}.timeline:before{content:"";position:absolute;left:9px;top:4px;bottom:4px;width:1px;background:rgba(var(--rgb),.18)}.tl{position:relative;padding:0 0 17px}.tl:before{content:"";position:absolute;left:-23px;top:4px;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}.tl-head{display:flex;justify-content:space-between;gap:10px}.tl-title{font-size:10px;color:var(--text);font-weight:600}.tl-time{font:7px Orbitron;color:var(--accent)}.tl-meta{margin-top:4px;color:var(--muted);font-size:8px}.tl-body{margin-top:6px;color:#a2b5c1;font-size:9px;line-height:1.5}
+.plugin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.plugin{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.012)}.plugin-icon{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:11px;background:rgba(var(--rgb),.08);color:var(--accent);font-size:17px}.plugin-info{flex:1;min-width:0}.plugin-name{color:var(--text);font-size:10px;font-weight:600}.plugin-desc{margin-top:4px;color:var(--muted);font-size:8px;line-height:1.35}.plugin-status{margin-top:5px;font-size:7px;letter-spacing:1px}.switch{position:relative;width:44px;height:24px;flex:none}.switch input{display:none}.slider{position:absolute;inset:0;border-radius:20px;background:#17232d;border:1px solid rgba(255,255,255,.05);transition:.25s}.slider:before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#81909a;transition:.25s}.switch input:checked+.slider{background:rgba(var(--rgb),.5)}.switch input:checked+.slider:before{transform:translateX(19px);background:#fff}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 0;border-bottom:1px solid rgba(var(--rgb),.07)}.settings-row:last-child{border:0}.setting-name{color:var(--text);font-size:10px}.setting-description{margin-top:4px;color:var(--muted);font-size:8px;line-height:1.4}.setting-control{width:190px}.setting-input,.setting-select{width:100%}.colors{display:flex;gap:9px;flex-wrap:wrap}.color-button{width:29px;height:29px;border:2px solid transparent;border-radius:50%}.color-button.selected{border-color:#fff;box-shadow:0 0 13px rgba(255,255,255,.2)}
+.badge{display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:99px;background:rgba(var(--rgb),.08);color:var(--accent);font-size:7px;letter-spacing:1px;border:1px solid var(--line)}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:9px;border:1px dashed var(--line);border-radius:12px}
+.log-row{display:grid;grid-template-columns:74px 74px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid rgba(var(--rgb),.07);font-size:9px}.log-time{color:var(--accent);font:8px Orbitron}.log-type{color:#b8c7d0;font-size:7px;letter-spacing:1px}.log-text{color:var(--muted);line-height:1.5}
+.watermark{position:fixed;right:18px;bottom:12px;z-index:400;color:rgba(150,210,240,.22);font:700 7px Orbitron;letter-spacing:2px;pointer-events:none}
+.modal-backdrop{position:fixed;inset:0;z-index:600;background:rgba(0,4,10,.68);backdrop-filter:blur(8px);display:none;place-items:center;padding:20px}.modal-backdrop.open{display:grid}.modal{width:min(640px,96vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#081827,#04101c);box-shadow:0 30px 100px rgba(0,0,0,.65);padding:20px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.modal-title{font:600 14px Orbitron;color:var(--text);letter-spacing:1px}.modal-close{width:32px;height:32px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--muted)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:grid;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:7px;color:var(--muted);letter-spacing:1.2px}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:#061321;color:var(--text);padding:9px;font-size:9px;outline:0}.field textarea{height:100px;resize:vertical}.notice{padding:10px 11px;border:1px solid rgba(var(--rgb),.15);background:rgba(var(--rgb),.045);border-radius:10px;color:#9bb5c3;font-size:8px;line-height:1.5;margin-bottom:12px}
+.toast{position:fixed;left:50%;bottom:25px;z-index:800;transform:translate(-50%,100px);padding:11px 17px;border:1px solid var(--line);border-radius:11px;background:rgba(7,20,34,.97);color:var(--text);font-size:9px;box-shadow:0 15px 45px rgba(0,0,0,.45);transition:.3s;pointer-events:none}.toast.show{transform:translate(-50%,0)}
+@media(max-width:1100px){.home-stats{left:12px;width:145px}.home-feed{right:12px;width:190px}.plugin-grid{grid-template-columns:1fr}}
+@media(max-width:800px){.sidebar:hover{width:var(--sidebar)}.nav-label,.logo-sub,.session-time{display:none!important}.workspace{width:100%;padding:20px}.home-stats,.home-feed{display:none}.core-area{transform:scale(.78)}.topbar{padding:0 12px}.metric-grid{grid-template-columns:repeat(2,1fr)}.grid,.form-grid{grid-template-columns:1fr}.controls .control-button{display:none}}
+@media(max-width:520px){.clock{display:none}.core-area{transform:scale(.62)}.response{width:90%;top:24px}.response-text{font-size:11px}.workspace-title{font-size:17px}.metric-grid{grid-template-columns:1fr 1fr}.watermark{font-size:6px}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<div class="scan-line"></div>
+
+<aside class="sidebar">
+  <div class="logo"><div class="logo-main" id="logoMain">SHADOW</div><span class="logo-sub">PERSONAL AI SYSTEM</span></div>
+  <nav class="nav">
+    <button class="active" data-page="home"><span class="nav-icon">◉</span><span class="nav-label">Core</span></button>
+    <button data-page="chat"><span class="nav-icon">◫</span><span class="nav-label">Shadow Chat</span></button>
+    <button data-page="memory"><span class="nav-icon">◇</span><span class="nav-label">Memory</span></button>
+    <button data-page="activity"><span class="nav-icon">◌</span><span class="nav-label">Activity Timeline</span></button>
+    <button data-page="logs"><span class="nav-icon">≡</span><span class="nav-label">Logs</span></button>
+    <button data-page="plugins"><span class="nav-icon">⬡</span><span class="nav-label">Plugins</span></button>
+    <button data-page="settings"><span class="nav-icon">⚙</span><span class="nav-label">Settings</span></button>
+  </nav>
+  <div class="side-bottom"><div class="online-row"><span class="online-dot"></span><span>SYSTEM ONLINE</span></div><div class="session-time" id="uptime">00:00:00 SESSION</div></div>
+</aside>
+
+<section class="shell">
+<header class="topbar">
+  <div class="system-name"><strong id="topName">SHADOW</strong><span class="status-separator">/</span><span class="system-status" id="systemStatus">IDLE • OBSERVING</span></div>
+  <div class="top-right"><span class="clock" id="clock">00:00:00</span><button class="top-button" id="topTextButton">⌨</button><button class="top-button" id="topClose">×</button></div>
+</header>
+
+<main class="stage" id="stage">
+  <div class="response"><div class="response-label" id="responseLabel">SHADOW RESPONSE</div><div class="response-box"><div class="response-text" id="responseText">Systems online. I'm ready when you are.</div></div></div>
+
+  <div class="home-stats">
+    <div class="stat-mini"><div class="k">CORE STATE</div><div class="v" id="homeState">READY</div></div>
+    <div class="stat-mini"><div class="k">MEMORY RECORDS</div><div class="v" id="homeMemory">0</div></div>
+    <div class="stat-mini"><div class="k">TIMELINE EVENTS</div><div class="v" id="homeActivity">0</div></div>
+  </div>
+  <div class="home-feed"><div class="feed-title">RECENT ACTIVITY</div><div id="homeFeed"></div></div>
+
+  <div class="core-area">
+    <div class="hud hud-1"></div><div class="hud hud-2"></div><div class="hud hud-3"></div>
+    <div class="core state-idle" id="core">
+      <div class="energy"></div><div class="inner"></div><span class="jarvis-mark">S</span>
+      <div class="particle p1"></div><div class="particle p2"></div><div class="particle p3"></div>
+    </div>
+    <div class="core-status"><div class="state-name" id="stateName">READY</div><div class="state-detail" id="stateDetail">Voice assistant standing by</div></div>
+  </div>
+
+  <div class="controls"><button class="control-button" id="stateButton">CHANGE STATE</button><button class="voice-button" id="voiceButton">🎙</button><button class="control-button" id="textButton">TEXT COMMAND</button></div>
+</main>
+
+<section class="workspace" id="workspace">
+  <div class="workspace-header"><div><div class="workspace-title" id="workspaceTitle">SHADOW CHAT</div><div class="workspace-subtitle" id="workspaceSubtitle"></div></div><button class="workspace-close" id="workspaceClose">×</button></div>
+  <div id="workspaceBody"></div>
+</section>
+
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div>
+<div class="watermark">MOCK / TEST DATA • NOT A REAL CONVERSATION</div>
+<div class="toast" id="toast"></div>
+</section>
+</div>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+const defaults={
+ name:"SHADOW",accent:"#19b5ff",theme:"cyan-night",shape:"jarvis",
+ voiceEnabled:true,activityTracking:true,animations:true
+};
+const themes={
+ "cyan-night":{label:"Cyan Night",accent:"#19b5ff",bg:"#02060d",bg2:"#06101c"},
+ "jarvis-blue":{label:"JARVIS Blue",accent:"#65b9ff",bg:"#020710",bg2:"#071525"},
+ "violet-neon":{label:"Violet Neon",accent:"#a855f7",bg:"#08030e",bg2:"#16091f"},
+ "emerald-matrix":{label:"Emerald Matrix",accent:"#00e69a",bg:"#020b09",bg2:"#061a15"},
+ "crimson-core":{label:"Crimson Core",accent:"#ff3d71",bg:"#0b0307",bg2:"#1b080e"},
+ "solar-amber":{label:"Solar Amber",accent:"#ffb000",bg:"#0d0801",bg2:"#1d1204"},
+ "deep-ocean":{label:"Deep Ocean",accent:"#2d7dff",bg:"#02050d",bg2:"#06132b"}
+};
+const stateData={
+ idle:["READY","Voice assistant standing by"],
+ listening:["LISTENING","I'm listening to you"],
+ thinking:["THINKING","Processing your request"],
+ reasoning:["REASONING","Analyzing context and information"],
+ speaking:["SPEAKING","Delivering response"],
+ processing:["PROCESSING","Executing system operation"],
+ sleeping:["SLEEPING","Low-power standby mode"]
+};
+const defaultPlugins=[
+ ["System Control","Desktop and system action module.","⌘",true],
+ ["Web Intelligence","Search and information retrieval module.","◎",true],
+ ["Memory Engine","Long-term context storage.","◈",true],
+ ["Vision Module","Image and screen understanding.","◉",false],
+ ["Voice Assistant","Voice interface and listening module.","🎙",true],
+ ["Automation","Task and workflow automation.","⚡",true],
+ ["Files","Local file organization module.","▣",true],
+ ["Custom Module","Future custom integration slot.","λ",false]
+].map((x,i)=>({id:"p"+i,name:x[0],desc:x[1],icon:x[2],enabled:x[3]}));
+
+function load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}
+let settings={...defaults,...load("shadowX.settings",{})};
+let memories=load("shadowX.memories",[]);
+let activities=load("shadowX.activities",[]);
+let logs=load("shadowX.logs",[]);
+let directChat=load("shadowX.directChat",[]);
+let records=load("shadowX.records",[]);
+let plugins=load("shadowX.plugins",defaultPlugins);
+
+function save(){
+ localStorage.setItem("shadowX.settings",JSON.stringify(settings));
+ localStorage.setItem("shadowX.memories",JSON.stringify(memories));
+ localStorage.setItem("shadowX.activities",JSON.stringify(activities));
+ localStorage.setItem("shadowX.logs",JSON.stringify(logs));
+ localStorage.setItem("shadowX.directChat",JSON.stringify(directChat));
+ localStorage.setItem("shadowX.records",JSON.stringify(records));
+ localStorage.setItem("shadowX.plugins",JSON.stringify(plugins));
+}
+function toast(t){let e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),2200)}
+function log(type,text){logs.unshift({id:uid(),type,text,time:new Date().toISOString()});logs=logs.slice(0,400);save()}
+function activity(title,type="SYSTEM",body="",meta=""){activities.unshift({id:uid(),title,type,body,meta,time:new Date().toISOString()});activities=activities.slice(0,300);save();refreshHome()}
+function applyTheme(){
+ let t=themes[settings.theme]||themes["cyan-night"], c=settings.accent||t.accent;
+ let n=parseInt(c.replace("#",""),16),r=n>>16&255,g=n>>8&255,b=n&255;
+ document.documentElement.style.setProperty("--accent",c);
+ document.documentElement.style.setProperty("--rgb",`${r},${g},${b}`);
+ document.documentElement.style.setProperty("--bg",t.bg);
+ document.documentElement.style.setProperty("--bg2",t.bg2);
+ document.documentElement.style.setProperty("--glow",`rgba(${r},${g},${b},.42)`);
+ $("#logoMain").textContent=(settings.name||"SHADOW").toUpperCase();
+ $("#topName").textContent=(settings.name||"SHADOW").toUpperCase();
+ $("#responseLabel").textContent=(settings.name||"SHADOW").toUpperCase()+" RESPONSE";
+ document.title=(settings.name||"SHADOW")+" AI";
+}
+function setState(state,text){
+ if(!stateData[state])state="idle";
+ let d=stateData[state],core=$("#core");core.className="core state-"+state;
+ $("#stateName").textContent=d[0];$("#stateDetail").textContent=d[1];
+ $("#systemStatus").textContent=d[0]+" • "+(state==="idle"?"OBSERVING":state);
+ $("#homeState").textContent=d[0];
+ if(text!==undefined){$("#responseText").style.opacity=0;setTimeout(()=>{$("#responseText").textContent=text;$("#responseText").style.opacity=1},90)}
+}
+function refreshHome(){
+ $("#homeMemory").textContent=memories.length;
+ $("#homeActivity").textContent=activities.length;
+ let a=activities.slice(0,4);
+ $("#homeFeed").innerHTML=a.length?a.map(x=>`<div class="feed-item"><b style="color:var(--text)">${esc(x.title)}</b><br>${esc(x.type)} · ${new Date(x.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</div>`).join(""):`<div class="feed-item">No recent activity.</div>`;
+}
+function closeWorkspace(){$("#workspace").classList.remove("open");$$(".nav button").forEach(b=>b.classList.remove("active"));$("[data-page=home]").classList.add("active")}
+function openPage(page){
+ if(page==="home"){closeWorkspace();return}
+ $("#workspace").classList.add("open");$$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===page));
+ renderPage(page);
+}
+const pageMeta={
+ chat:["SHADOW CHAT","Direct assistant chat and private mock records"],
+ memory:["MEMORY","Persistent memory records and details"],
+ activity:["ACTIVITY TIMELINE","Detailed event history with filters"],
+ logs:["SYSTEM LOGS","Structured interface event stream"],
+ plugins:["PLUGINS","Modular capability controls"],
+ settings:["SETTINGS","Identity, data creation and system configuration"]
+};
+function renderPage(page){
+ let m=pageMeta[page];$("#workspaceTitle").textContent=m[0];$("#workspaceSubtitle").textContent=m[1];
+ ({chat:renderChat,memory:renderMemory,activity:renderActivity,logs:renderLogs,plugins:renderPlugins,settings:renderSettings}[page]||renderSettings)();
+}
+
+/* DIRECT CHAT */
+function renderChat(){
+ let html=`<div class="metric-grid">
+ <div class="metric-card"><div class="metric-label">DIRECT MESSAGES</div><div class="metric-value">${directChat.length}</div></div>
+ <div class="metric-card"><div class="metric-label">MOCK RECORD SETS</div><div class="metric-value">${records.length}</div></div>
+ <div class="metric-card"><div class="metric-label">MEMORY</div><div class="metric-value">${memories.length}</div></div>
+ <div class="metric-card"><div class="metric-label">PLUGINS ACTIVE</div><div class="metric-value">${plugins.filter(p=>p.enabled).length}</div></div></div>`;
+ html+=`<div class="card"><div class="card-title">DIRECT CHAT</div><div class="notice">This is the private Shadow interface. Messages entered here are stored locally in this browser.</div>`;
+ html+=directChat.length?directChat.slice().reverse().map(m=>`<div class="chat ${m.role==="user"?"you":"ai"}"><div class="chat-name">${m.role==="user"?"YOU":esc(settings.name)}</div>${esc(m.text)}<span class="chat-time">${new Date(m.time).toLocaleString()}</span></div>`).join(""):`<div class="empty">No direct messages yet.</div>`;
+ html+=`<div class="action-row"><button class="action-button" onclick="openDirectComposer()">NEW MESSAGE</button><button class="action-button" onclick="clearDirect()">CLEAR CHAT</button></div></div>`;
+ html+=`<div class="card"><div class="card-title">PRIVATE MOCK RECORDS</div><div class="card-description">Records created from Settings are shown here separately from your direct Shadow chat.</div><div class="action-row"><button class="action-button" onclick="openRecordModal()">CREATE RECORD</button></div>`;
+ if(records.length) html+=records.slice(0,20).map((r,i)=>`<div class="item"><b>${esc(r.title||r.contact)}</b>${esc(r.summary||"Record")}<br><span class="badge">${esc(r.kind)}</span> <span class="badge">${esc(r.dateLabel||"CUSTOM")}</span><button class="action-button danger" style="float:right;height:24px" onclick="deleteRecord('${r.id}')">DELETE</button></div>`).join("");
+ else html+=`<div class="empty" style="margin-top:12px">No mock records created.</div>`;
+ html+=`</div>`;$("#workspaceBody").innerHTML=html;
+}
+function openDirectComposer(){
+ openModal("NEW DIRECT MESSAGE",`<div class="field full"><label>MESSAGE</label><textarea id="dmText" placeholder="Write a message to Shadow..."></textarea></div>`,`SEND MESSAGE`,()=>{let t=$("#dmText").value.trim();if(!t)return;directChat.push({id:uid(),role:"user",text:t,time:new Date().toISOString()});save();activity("Direct message sent","CHAT",t,"Shadow");log("CHAT","Direct message received");closeModal();renderChat();setState("thinking","Processing your message...");setTimeout(()=>{let a="Message received. This interface is ready for backend integration.";directChat.push({id:uid(),role:"shadow",text:a,time:new Date().toISOString()});save();activity("Shadow response generated","CHAT",a,"Direct");log("AI","Direct response generated");setState("speaking",a);setTimeout(()=>setState("idle"),1800);renderChat()},900)})
+}
+function clearDirect(){if(confirm("Clear direct Shadow chat?")){directChat=[];save();log("CHAT","Direct chat cleared");renderChat();toast("Direct chat cleared")}}
+function deleteRecord(id){if(confirm("Delete this mock record?")){records=records.filter(r=>r.id!==id);save();activity("Mock record deleted","RECORD","","Builder");log("RECORD","Mock record deleted");renderChat();}}
+
+/* MEMORY */
+function renderMemory(){
+ let q=window.memoryQuery||"",cat=window.memoryCat||"ALL";
+ let list=memories.filter(m=>(!q||(`${m.title} ${m.content} ${m.tags}`).toLowerCase().includes(q.toLowerCase()))&&(cat==="ALL"||m.category===cat));
+ let cats=[...new Set(memories.map(m=>m.category))];
+ $("#workspaceBody").innerHTML=`<div class="metric-grid"><div class="metric-card"><div class="metric-label">TOTAL</div><div class="metric-value">${memories.length}</div></div><div class="metric-card"><div class="metric-label">IMPORTANT</div><div class="metric-value">${memories.filter(m=>m.priority==="HIGH").length}</div></div><div class="metric-card"><div class="metric-label">CATEGORIES</div><div class="metric-value">${cats.length}</div></div><div class="metric-card"><div class="metric-label">STORAGE</div><div class="metric-value">LOCAL</div></div></div>
+ <div class="toolbar"><input class="tool-input" id="memorySearch" value="${esc(q)}" placeholder="Search memory..."><select class="tool-select" id="memoryCat"><option>ALL</option>${cats.map(c=>`<option ${cat===c?"selected":""}>${esc(c)}</option>`).join("")}</select><button class="action-button" onclick="openMemoryModal()">＋ CREATE MEMORY</button></div>
+ <div class="card"><div class="card-title">MEMORY FEED</div>${list.length?list.map(m=>`<div class="item" style="cursor:pointer" onclick="showMemory('${m.id}')"><b>${esc(m.title)} <span class="badge">${esc(m.priority)}</span></b>${esc(m.content.slice(0,150))}${m.content.length>150?"…":""}<br><span class="badge">${esc(m.category)}</span> <span class="badge">${esc(m.tags||"NO TAGS")}</span><span style="float:right;color:#506676;font-size:7px">${new Date(m.time).toLocaleDateString()}</span></div>`).join(""):`<div class="empty">No memory records match the current filter.</div>`}</div>`;
+ $("#memorySearch").oninput=e=>{window.memoryQuery=e.target.value;renderMemory()};$("#memoryCat").onchange=e=>{window.memoryCat=e.target.value;renderMemory()};
+}
+function showMemory(id){let m=memories.find(x=>x.id===id);if(!m)return;openModal("MEMORY DETAILS",`<div class="item"><b>TITLE</b>${esc(m.title)}</div><div class="item"><b>CATEGORY</b>${esc(m.category)}</div><div class="item"><b>PRIORITY</b>${esc(m.priority)}</div><div class="item"><b>TAGS</b>${esc(m.tags||"—")}</div><div class="item"><b>FULL CONTENT</b>${esc(m.content)}</div><div class="item"><b>CREATED</b>${new Date(m.time).toLocaleString()}</div>`,`CLOSE`,closeModal)}
+function openMemoryModal(){
+ openModal("CREATE MEMORY",`<div class="form-grid"><div class="field"><label>TITLE</label><input id="mTitle" placeholder="Memory title"></div><div class="field"><label>CATEGORY</label><input id="mCat" placeholder="Preference / Identity / Project"></div><div class="field"><label>PRIORITY</label><select id="mPri"><option>LOW</option><option selected>MEDIUM</option><option>HIGH</option></select></div><div class="field"><label>TAGS</label><input id="mTags" placeholder="comma, separated"></div><div class="field full"><label>CONTENT</label><textarea id="mContent" placeholder="Detailed memory content..."></textarea></div></div>`,`STORE MEMORY`,()=>{let title=$("#mTitle").value.trim(),content=$("#mContent").value.trim();if(!title||!content)return toast("Title and content are required");memories.unshift({id:uid(),title,category:$("#mCat").value.trim()||"General",priority:$("#mPri").value,tags:$("#mTags").value.trim(),content,time:new Date().toISOString()});save();activity("Memory created","MEMORY",title,"Settings / Memory");log("MEMORY","New memory stored");closeModal();renderMemory();toast("Memory stored")})
+}
+
+/* ACTIVITY TIMELINE */
+function renderActivity(){
+ let q=window.actQ||"",type=window.actType||"ALL",list=activities.filter(a=>(!q||(`${a.title} ${a.body} ${a.meta}`).toLowerCase().includes(q.toLowerCase()))&&(type==="ALL"||a.type===type));
+ let types=[...new Set(activities.map(a=>a.type))];
+ $("#workspaceBody").innerHTML=`<div class="metric-grid"><div class="metric-card"><div class="metric-label">EVENTS</div><div class="metric-value">${activities.length}</div></div><div class="metric-card"><div class="metric-label">TODAY</div><div class="metric-value">${activities.filter(a=>new Date(a.time).toDateString()===new Date().toDateString()).length}</div></div><div class="metric-card"><div class="metric-label">RECORDS</div><div class="metric-value">${records.length}</div></div><div class="metric-card"><div class="metric-label">STATUS</div><div class="metric-value">LIVE</div></div></div>
+ <div class="toolbar"><input class="tool-input" id="actSearch" value="${esc(q)}" placeholder="Filter timeline..."><select class="tool-select" id="actType"><option>ALL</option>${types.map(t=>`<option ${type===t?"selected":""}>${esc(t)}</option>`).join("")}</select><button class="action-button" onclick="openRecordModal()">＋ CREATE EVENT</button><button class="action-button danger" onclick="clearActivity()">CLEAR</button></div>
+ <div class="card"><div class="card-title">ACTIVITY TIMELINE</div><div class="timeline">${list.length?list.map(a=>`<div class="tl"><div class="tl-head"><div class="tl-title">${esc(a.title)}</div><div class="tl-time">${new Date(a.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</div></div><div class="tl-meta">${esc(a.type)}${a.meta?" · "+esc(a.meta):""} · ${new Date(a.time).toLocaleDateString()}</div>${a.body?`<div class="tl-body">${esc(a.body)}</div>`:""}</div>`).join(""):`<div class="empty">No timeline events match the filter.</div>`}</div></div>`;
+ $("#actSearch").oninput=e=>{window.actQ=e.target.value;renderActivity()};$("#actType").onchange=e=>{window.actType=e.target.value;renderActivity()};
+}
+function clearActivity(){if(confirm("Clear the activity timeline?")){activities=[];save();log("ACTIVITY","Timeline cleared");renderActivity();refreshHome()}}
+
+/* LOGS */
+function renderLogs(){
+ let q=window.logQ||"",type=window.logType||"ALL",list=logs.filter(l=>(!q||(`${l.type} ${l.text}`).toLowerCase().includes(q.toLowerCase()))&&(type==="ALL"||l.type===type)),types=[...new Set(logs.map(l=>l.type))];
+ $("#workspaceBody").innerHTML=`<div class="toolbar"><input class="tool-input" id="logSearch" value="${esc(q)}" placeholder="Search logs..."><select class="tool-select" id="logType"><option>ALL</option>${types.map(t=>`<option ${type===t?"selected":""}>${esc(t)}</option>`).join("")}</select><button class="action-button danger" onclick="clearLogs()">CLEAR LOGS</button></div><div class="card"><div class="card-title">EVENT STREAM</div>${list.length?list.map(l=>`<div class="log-row"><div class="log-time">${new Date(l.time).toLocaleTimeString()}</div><div class="log-type">${esc(l.type)}</div><div class="log-text">${esc(l.text)}</div></div>`).join(""):`<div class="empty">No logs match the filter.</div>`}</div>`;
+ $("#logSearch").oninput=e=>{window.logQ=e.target.value;renderLogs()};$("#logType").onchange=e=>{window.logType=e.target.value;renderLogs()};
+}
+function clearLogs(){if(confirm("Clear all system logs?")){logs=[];save();renderLogs();toast("Logs cleared")}}
+
+/* PLUGINS */
+function renderPlugins(){
+ $("#workspaceBody").innerHTML=`<div class="metric-grid"><div class="metric-card"><div class="metric-label">MODULES</div><div class="metric-value">${plugins.length}</div></div><div class="metric-card"><div class="metric-label">ACTIVE</div><div class="metric-value">${plugins.filter(p=>p.enabled).length}</div></div><div class="metric-card"><div class="metric-label">OFFLINE</div><div class="metric-value">${plugins.filter(p=>!p.enabled).length}</div></div><div class="metric-card"><div class="metric-label">ENGINE</div><div class="metric-value">LOCAL</div></div></div><div class="card"><div class="card-title">PLUGIN MODULES</div><div class="plugin-grid">${plugins.map((p,i)=>`<div class="plugin"><div class="plugin-icon">${esc(p.icon)}</div><div class="plugin-info"><div class="plugin-name">${esc(p.name)}</div><div class="plugin-desc">${esc(p.desc)}</div><div class="plugin-status" style="color:${p.enabled?"var(--green)":"var(--muted)"}">${p.enabled?"ACTIVE":"OFFLINE"}</div></div><label class="switch"><input type="checkbox" ${p.enabled?"checked":""} onchange="togglePlugin(${i},this.checked)"><span class="slider"></span></label></div>`).join("")}</div></div>`;
+}
+function togglePlugin(i,v){plugins[i].enabled=v;save();activity(`${plugins[i].name} ${v?"enabled":"disabled"}`,"PLUGIN","Module state changed",plugins[i].name);log("PLUGIN",`${plugins[i].name} set to ${v}`);toast(plugins[i].name+(v?" enabled":" disabled"))}
+
+/* SETTINGS */
+function renderSettings(){
+ let colors=["#19b5ff","#65b9ff","#a855f7","#00e69a","#ff3d71","#ffb000","#ff4fd8","#b6ff3b"];
+ $("#workspaceBody").innerHTML=`
+ <div class="card"><div class="card-title">IDENTITY</div><div class="settings-row"><div><div class="setting-name">Assistant Name</div><div class="setting-description">Change the displayed Shadow identity.</div></div><div class="setting-control"><input class="setting-input" id="nameInput" value="${esc(settings.name)}"></div></div><div class="action-row"><button class="action-button" onclick="saveName()">SAVE NAME</button></div></div>
+ <div class="card"><div class="card-title">CREATE & STORE</div><div class="notice">All persistent content creation is centralized here. Use these controls for memory records, timeline events and private mock record sets. The interface keeps a permanent mock-data marker so these records are not presented as authentic communications.</div><div class="action-row"><button class="action-button" onclick="openMemoryModal()">＋ CREATE MEMORY</button><button class="action-button" onclick="openRecordModal()">＋ CREATE RECORD / EVENT</button><button class="action-button" onclick="exportData()">EXPORT DATA</button><button class="action-button" onclick="importData()">IMPORT DATA</button></div></div>
+ <div class="card"><div class="card-title">VISUAL THEME</div><div class="settings-row"><div><div class="setting-name">Interface Theme</div><div class="setting-description">Choose the overall atmosphere.</div></div><div class="setting-control"><select class="setting-select" id="themeSelect">${Object.entries(themes).map(([k,t])=>`<option value="${k}" ${settings.theme===k?"selected":""}>${esc(t.label)}</option>`).join("")}</select></div></div><div class="settings-row"><div><div class="setting-name">Core Shape</div><div class="setting-description">The home-screen energy core remains separate from the data tools.</div></div><div class="setting-control"><select class="setting-select" id="shapeSelect"><option value="jarvis">Arc Core</option><option value="orb">Orb Core</option></select></div></div><div class="colors">${colors.map(c=>`<button class="color-button ${settings.accent.toLowerCase()===c.toLowerCase()?"selected":""}" style="background:${c}" onclick="changeAccent('${c}')"></button>`).join("")}</div></div>
+ <div class="card"><div class="card-title">SYSTEM BEHAVIOR</div>${[
+ ["voiceEnabled","Voice Interface","Enable the voice button."],
+ ["activityTracking","Activity Tracking","Record interface events in the timeline."],
+ ["animations","Advanced Core Animations","Enable dynamic core state effects."]
+ ].map(x=>`<div class="settings-row"><div><div class="setting-name">${x[1]}</div><div class="setting-description">${x[2]}</div></div><label class="switch"><input type="checkbox" ${settings[x[0]]?"checked":""} onchange="changeSetting('${x[0]}',this.checked)"><span class="slider"></span></label></div>`).join("")}</div>
+ <div class="card"><div class="card-title">DATA MANAGEMENT</div><div class="card-description">Everything is stored in localStorage. Resetting removes the local Shadow interface data created by this page.</div><div class="action-row"><button class="action-button danger" onclick="resetAll()">RESET LOCAL DATA</button></div></div>`;
+ $("#themeSelect").onchange=e=>{settings.theme=e.target.value;settings.accent=themes[e.target.value].accent;applyTheme();save();activity("Theme changed","SETTINGS",themes[e.target.value].label);log("SETTINGS","Theme changed");renderSettings()};
+}
+function saveName(){let n=$("#nameInput").value.trim();if(!n)return toast("Enter a name");settings.name=n.toUpperCase();applyTheme();save();activity("Assistant identity updated","SETTINGS",settings.name);log("SETTINGS","Assistant name changed");toast("Name updated")}
+function changeAccent(c){settings.accent=c;applyTheme();save();activity("Accent color changed","SETTINGS",c);log("SETTINGS","Accent color changed");renderSettings()}
+function changeSetting(k,v){settings[k]=v;save();applyTheme();log("SETTINGS",`${k}=${v}`);toast("Setting updated")}
+function resetAll(){if(confirm("Reset all local Shadow data?")){["shadowX.settings","shadowX.memories","shadowX.activities","shadowX.logs","shadowX.directChat","shadowX.records","shadowX.plugins"].forEach(k=>localStorage.removeItem(k));location.reload()}}
+function exportData(){let data={settings,memories,activities,logs,directChat,records,plugins};let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="shadow-local-data.json";a.click();URL.revokeObjectURL(a.href);toast("Data export created")}
+function importData(){let i=document.createElement("input");i.type="file";i.accept=".json";i.onchange=()=>{let f=i.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(d.settings)settings={...defaults,...d.settings};if(Array.isArray(d.memories))memories=d.memories;if(Array.isArray(d.activities))activities=d.activities;if(Array.isArray(d.logs))logs=d.logs;if(Array.isArray(d.directChat))directChat=d.directChat;if(Array.isArray(d.records))records=d.records;if(Array.isArray(d.plugins))plugins=d.plugins;save();applyTheme();renderSettings();toast("Data imported")}catch{toast("Invalid JSON file")}};r.readAsText(f)};i.click()}
+
+/* RECORD / EVENT BUILDER */
+function openRecordModal(){
+ openModal("CREATE RECORD / EVENT",`<div class="notice">Use this builder for fictional/mock UI data only. It is intentionally not an Instagram clone and records created here carry the mock-data watermark.</div><div class="form-grid">
+ <div class="field"><label>TYPE</label><select id="rKind"><option>CHAT</option><option>EVENT</option><option>STATUS</option><option>NOTE</option><option>CALL</option></select></div>
+ <div class="field"><label>CONTACT / SUBJECT</label><input id="rContact" placeholder="Demo Contact"></div>
+ <div class="field"><label>TITLE</label><input id="rTitle" placeholder="Record title"></div>
+ <div class="field"><label>DATE / TIME</label><input id="rDate" type="datetime-local"></div>
+ <div class="field full"><label>SUMMARY / EVENT TEXT</label><textarea id="rBody" placeholder="Describe the fictional/mock record..."></textarea></div>
+ <div class="field full"><label>MESSAGES (OPTIONAL)</label><textarea id="rMessages" placeholder="One message per line."></textarea></div>
+ </div>`,`STORE RECORD`,()=>{let contact=$("#rContact").value.trim()||"Demo Contact",body=$("#rBody").value.trim();if(!body)return toast("Add a summary or event text");let dt=$("#rDate").value?new Date($("#rDate").value).toISOString():new Date().toISOString();let msgs=$("#rMessages").value.split("\n").map(x=>x.trim()).filter(Boolean).map((text,i)=>({id:uid(),sender:i%2?"CONTACT":"SHADOW",text,time:dt}));let rec={id:uid(),kind:$("#rKind").value,contact,title:$("#rTitle").value.trim()||contact+" · "+$("#rKind").value,summary:body,dateLabel:new Date(dt).toLocaleString(),time:dt,messages:msgs,mock:true};records.unshift(rec);save();activity("Mock record created","RECORD",body,contact);log("RECORD",`Created ${rec.kind} record for ${contact}`);closeModal();toast("Record stored");if($("#workspace").classList.contains("open"))renderPage("activity")})
+}
+
+/* MODAL */
+function openModal(title,body,button,action){$("#modal").innerHTML=`<div class="modal-head"><div class="modal-title">${esc(title)}</div><button class="modal-close" onclick="closeModal()">×</button></div>${body}<div class="action-row"><button class="action-button" id="modalAction">${esc(button)}</button><button class="action-button" onclick="closeModal()">CANCEL</button></div>`;$("#modalBackdrop").classList.add("open");$("#modalAction").onclick=action}
+function closeModal(){$("#modalBackdrop").classList.remove("open");$("#modal").innerHTML=""}
+$("#modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")closeModal()});
+
+/* NAV */
+$$(".nav button").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
+$("#workspaceClose").onclick=closeWorkspace;$("#topClose").onclick=closeWorkspace;
+$("#topTextButton").onclick=openDirectComposer;
+$("#textButton").onclick=openDirectComposer;
+
+/* VOICE */
+let listening=false;
+$("#voiceButton").onclick=()=>{
+ if(!settings.voiceEnabled)return toast("Voice is disabled in Settings");
+ listening=!listening;$("#voiceButton").classList.toggle("active",listening);
+ if(listening){setState("listening","I'm listening.");activity("Voice interface activated","VOICE","Listening mode","Home");log("VOICE","Listening mode started")}
+ else{setState("idle","I'm ready.");activity("Voice interface stopped","VOICE","Listening mode ended","Home");log("VOICE","Listening mode stopped")}
+};
+
+/* STATE BUTTON */
+let si=0;const states=["idle","listening","thinking","reasoning","speaking","processing","sleeping"];
+$("#stateButton").onclick=()=>{si=(si+1)%states.length;let s=states[si],texts={idle:"I'm ready.",listening:"I'm listening.",thinking:"Let me think about that.",reasoning:"Analyzing context and reasoning.",speaking:"Speaking state active.",processing:"Executing a system operation.",sleeping:"Entering low-power standby."};setState(s,texts[s]);activity("Core state changed","CORE",texts[s],s.toUpperCase());log("CORE","State changed to "+s)};
+
+/* CLOCK */
+function clock(){$("#clock").textContent=new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})}setInterval(clock,1000);clock();
+const started=Date.now();function uptime(){let s=Math.floor((Date.now()-started)/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;$("#uptime").textContent=[h,m,x].map(v=>String(v).padStart(2,"0")).join(":")+" SESSION"}setInterval(uptime,1000);uptime();
+
+/* INITIAL DATA */
+if(!activities.length){activities=[
+ {id:uid(),title:"Shadow interface initialized",type:"SYSTEM",body:"Core interface loaded successfully.",meta:"Home",time:new Date().toISOString()},
+ {id:uid(),title:"Core entered idle state",type:"CORE",body:"Primary visual core is standing by.",meta:"READY",time:new Date().toISOString()}
+]}
+if(!logs.length)logs=[{id:uid(),type:"SYSTEM",text:"Shadow interface initialized.",time:new Date().toISOString()}];
+save();applyTheme();setState("idle","Systems online. I'm ready when you are.");refreshHome();
+</script>
+</body>
+</html>
